@@ -1,0 +1,6 @@
+neovim_github_repo: "neovim"
+neovim_github_user: "neovim"
+neovim_asset_name: "nvim-linux-{{ ansible_architecture }}.tar.gz "
+neovim_download_path: "/tmp/{{ neovim_asset_name }}"
+neovim_extract_path: "/tmp/{{ neovim_latest_version }}"
+ansible_python_venv: "/opt/ansible-venv"

@@ -1,0 +1,10 @@
+- name: Setup new debian machine
+  hosts: Deb
+  remote_user: welly
+  tasks:
+    - name: Download newest neovim
+      ansible.builtin.include_role:
+        name: neovim
+    - name: Implement dotfiles
+      ansible.builtin.include_role:
+        name: dotfiles

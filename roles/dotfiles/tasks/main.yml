@@ -1,0 +1,46 @@
+- name: Install necessary package
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    pkg:
+      - exa
+      - zsh
+      - npm
+      - gcc
+      - unzip
+      - make
+      - git
+      - curl
+      - fzf
+      - btop
+      - ripgrep
+- name: Clone dotfiles
+  ansible.builtin.git:
+    clone: true
+    update: true
+    version: main
+    dest: "./dotfiles"
+    repo: "https://github.com/{{ dotfiles_repo }}"
+- name: Downloads newest stow
+  ansible.builtin.command:
+    chdir: "~/dotfiles"
+    cmd: "./down_stow.sh"
+    creates: "/usr/local/bin/stow"
+- name: Implement dotfiles
+  ansible.builtin.command:
+    chdir: "~/dotfiles"
+    cmd: "./impl_all.sh"
+    creates: "~/.config/nvim"
+- name: Change default shell
+  become: true
+  ansible.builtin.user:
+    user: "{{ ansible_ssh_user }}"
+    shell: /bin/zsh
+- name: Install Neovim mod
+  ansible.builtin.command:
+    argv:
+      - nvim
+      - --headless
+      - "+Lazy! sync"
+      - +qa
+    creates: "~/.local/share/nvim/lazy"

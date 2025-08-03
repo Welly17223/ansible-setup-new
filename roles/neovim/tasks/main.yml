@@ -1,0 +1,125 @@
+# tasks file for neovim
+- name: Check if neovim is downloaded
+  ansible.builtin.stat:
+    path: "{{ neovim_install_dir }}/bin/nvim"
+  register: nvim_state
+- name: If Neovim is downloaded, then exit
+  ansible.builtin.meta: end_role
+  when: nvim_state.stat.exists
+- name: Install dependency
+  block:
+    - name: Install pip and rsync
+      become: true
+      ansible.builtin.apt:
+        pkg:
+          - python3
+          - python3-pip
+          - python3-venv
+    - name: Install github3
+      become: true
+      ansible.builtin.pip:
+        name:
+          - github3.py
+        virtualenv_command: "python3 -m venv"
+        virtualenv: "{{ ansible_python_venv }}"
+- name: Change python intepreter
+  ansible.builtin.set_fact:
+    ansible_python_interpreter: "{{ ansible_python_venv }}/bin/python3"
+- name: Get latest Neovim release version
+  community.general.github_release:
+    repo: "{{ neovim_github_repo }}"
+    user: "{{ neovim_github_user }}"
+    action: latest_release
+  register: neovim_release
+- name: Determin arch
+  ansible.builtin.set_fact:
+    ansible_architecture: "arm64"
+  when: ansible_architecture=="aarch64"
+- name: Set latest Neovim version fact
+  ansible.builtin.set_fact:
+    neovim_latest_version: "{{ neovim_release.tag }}"
+- name: Display latest Neovim version
+  ansible.builtin.debug:
+    msg: "Latest Neovim version is {{ neovim_latest_version }}"
+- name: Download and unarchive latest Neovim
+  ansible.builtin.unarchive:
+    src: "https://github.com/{{ neovim_github_user }}/{{ neovim_github_repo }}/releases/download/{{ neovim_latest_version }}/{{ neovim_asset_name }}"
+    dest: "/tmp"
+    remote_src: true
+  register: unarchive_result
+- name: Install Neovim
+  block:
+    - name: Binary
+      become: true
+      ansible.builtin.copy:
+        src: "/tmp/nvim-linux-{{ ansible_architecture }}/bin/nvim"
+        dest: "{{ neovim_install_dir }}/bin"
+        remote_src: true
+        mode: "755"
+    - name: Library
+      become: true
+      ansible.builtin.copy:
+        src: "/tmp/nvim-linux-{{ ansible_architecture }}/lib/nvim"
+        dest: "{{ neovim_install_dir }}/lib"
+        remote_src: true
+        mode: "755"
+    - name: Applications directory
+      become: true
+      ansible.builtin.file:
+        path: "{{ neovim_install_dir }}/share/applications"
+        state: directory
+        mode: "755"
+        owner: root
+        group: root
+    - name: Applications
+      become: true
+      ansible.builtin.copy:
+        src: "/tmp/nvim-linux-{{ ansible_architecture }}/share/applications/nvim.desktop"
+        dest: "{{ neovim_install_dir }}/share/applications/nvim.desktop"
+        remote_src: true
+        mode: "755"
+    - name: Manual directory
+      become: true
+      ansible.builtin.file:
+        path: "{{ neovim_install_dir }}/share/man/man1"
+        state: directory
+        mode: "755"
+        owner: root
+        group: root
+    - name: Manual
+      become: true
+      ansible.builtin.copy:
+        src: "/tmp/nvim-linux-{{ ansible_architecture }}/share/man/man1/nvim.1"
+        dest: "{{ neovim_install_dir }}/share/man/man1/nvim.1"
+        remote_src: true
+        mode: "644"
+    - name: Icons directory
+      become: true
+      ansible.builtin.file:
+        path: "{{ neovim_install_dir }}/share/icons/hicolor/128x128/apps/nvim.png"
+        state: directory
+        mode: "755"
+        owner: root
+        group: root
+    - name: Icons
+      become: true
+      ansible.builtin.copy:
+        src: "/tmp/nvim-linux-{{ ansible_architecture }}/share/icons/hicolor/128x128/apps/nvim.png"
+        dest: "{{ neovim_install_dir }}/share/icons/hicolor/128x128/apps/nvim.png"
+        remote_src: true
+        mode: "644"
+    - name: Share
+      become: true
+      ansible.builtin.copy:
+        src: "/tmp/nvim-linux-{{ ansible_architecture }}/share/nvim"
+        dest: "{{ neovim_install_dir }}/share"
+        remote_src: true
+        mode: "755"
+- name: Clean up downloaded and extracted files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ neovim_download_path }}"
+    - "/tmp/nvim-linux-{{ ansible_architecture }}"
+  become: true

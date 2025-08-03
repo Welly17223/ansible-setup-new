@@ -1,1 +1,2 @@
 dotfiles_repo: "welly17223/dotfiles"
+ansible_python_venv: "/opt/ansible-venv"

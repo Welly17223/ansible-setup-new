@@ -42,6 +42,10 @@
 - name: Fastfetch version
   ansible.builtin.debug:
     msg: "Fastfetch latest release is {{ fastfetch_release.tag }}"
+- name: Set x86_84 to amd64
+  ansible.builtin.set_fact:
+    ansible_architecture: amd64
+  when: ansible_architecture=="x86_64"
 - name: Install fastfetch-cli
   become: true
   ansible.builtin.apt:
